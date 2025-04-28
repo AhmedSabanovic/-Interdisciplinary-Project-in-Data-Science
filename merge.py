@@ -1,8 +1,8 @@
 import pandas as pd
 
 # Load the CSV files
-file1 = 'c:\\Users\\ahmed\\Desktop\\GEO Test\\ascat_soil_categories.csv'
-file2 = 'c:\\Users\\ahmed\\Desktop\\GEO Test\\filtered_merged_diff_diff_files.csv'
+file1 = ascat_soil_categories.csv'
+file2 = 'filtered_merged_diff_diff_files.csv'
 
 df1 = pd.read_csv(file1)
 df2 = pd.read_csv(file2)
@@ -35,4 +35,4 @@ if 'Unnamed: 0' in grouped_df.columns:
     grouped_df.rename(columns={'Unnamed: 0': 'time'}, inplace=True)
 
 # Save the grouped dataframe to a new CSV file
-grouped_df.to_csv('c:\\Users\\ahmed\\Desktop\\GEO Test\\ascat_diff_diff.csv', index=False)
+grouped_df.to_csv('ascat_diff_diff.csv', index=False)
