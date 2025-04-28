@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ASCAT Soil Categories Map</title>
+  <style>
+    /* Global Styles */
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: #eef2f3;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    header {
+      background: linear-gradient(135deg, #0072ff, #00c6ff);
+      padding: 10px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+      box-shadow: 0px 2px 10px rgba(0,0,0,0.2);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.5em;
+    }
+    /* Navigation Menu */
+    nav {
+      display: flex;
+    }
+    nav a {
+      color: #fff;
+      padding: 10px 15px;
+      text-decoration: none;
+      font-size: 0.9em;
+      transition: background 0.3s;
+    }
+    nav a:hover {
+      background: #005bb5;
+    }
+    /* Main Container */
+    .main-container {
+      display: flex;
+      margin: 15px auto;
+      max-width: 1200px;
+      padding: 0 20px;
+      box-sizing: border-box;
+    }
+    /* Sidebar Styles */
+    .sidebar {
+      width: 250px;
+      margin-right: 20px;
+    }
+    .sidebar label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .sidebar select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+    }
+    .sidebar button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      background: #0072ff;
+      color: #fff;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    .sidebar button:hover {
+      background: #005bb5;
+    }
+    /* Map Container */
+    .map-container {
+      flex: 1;
+    }
+    svg {
+      border: 1px solid #ddd;
+      background: #fff;
+      display: block;
+      margin: 0 auto;
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.15);
+      border-radius: 4px;
+    }
+    /* Tooltip Styles */
+    .tooltip {
+      position: absolute;
+      text-align: center;
+      padding: 8px 10px;
+      font-size: 12px;
+      background: rgba(70, 130, 180, 0.9);
+      color: #fff;
+      pointer-events: none;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      white-space: nowrap;
+    }
+    /* Modal Styles */
+    #chart-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      z-index: 1000;
+      border-radius: 8px;
+      font-family: inherit;
+      max-width: 90%;
+    }
+    #chart-modal button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #e74c3c;
+      border: none;
+      color: #fff;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+    #chart-modal button:hover {
+      background: #c0392b;
+    }
+    /* Loading Spinner Styles */
+    .spinner {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      z-index: 1001;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .spinner-container {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.8);
+      z-index: 1000;
+    }
+    /* CSV container & Chart */
+    #csv-container {
+      margin-top: 20px;
+    }
+    #csv-filters {
+      margin-bottom: 20px;
+    }
+    #csv-chart {
+      margin: 20px auto;
+      display: block;
+    }
+  </style>
+  <!-- D3 & TopoJSON -->
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <script src="https://d3js.org/topojson.v2.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>ASCAT Soil Categories Map</h1>
+    <nav>
+      <a href="#" id="default-tab">Default Map</a>
+      <a href="#" id="cell-1250-tab">Cell Plots</a>
+      <a href="#" id="baseline-tab">Baseline</a>
+      <a href="#" id="roll15-tab">Roll15</a>
+      <a href="#" id="roll30-tab">Roll30</a>
+      <a href="#" id="roll60-tab">Roll60</a>
+      <a href="#" id="diff-tab">Diff</a>
+      <a href="#" id="diff-diff-tab">Diff-diff</a>
+      <a href="#" id="csv-tab">CSV Data</a>
+    </nav>
+  </header>
+
+  <div class="main-container">
+    <!-- Keep your sidebar for other map parameters -->
+    <div class="sidebar">
+      <label for="csv-select">Select CSV:</label>
+      <select id="csv-select">
+        <option value="ascat_merged_baseline.csv">ascat_merged_baseline</option>
+        <option value="ascat_merged_roll15.csv">ascat_merged_roll15</option>
+        <option value="ascat_merged_roll30.csv">ascat_merged_roll30</option>
+        <option value="ascat_merged_roll60.csv">ascat_merged_roll60</option>
+        <option value="ascat_merged_diff.csv">ascat_merged_diff</option>
+        <option value="ascat_merged_diff_diff.csv">ascat_merged_diff_diff</option>
+      </select>
+      <label for="parameter-select">Select Parameter:</label>
+      <select id="parameter-select">
+        <option value="slope40">slope40</option>
+        <option value="slope40_rolling_mean_15days">slope40_rolling_mean_15days</option>
+        <option value="slope40_rolling_mean_30days">slope40_rolling_mean_30days</option>
+        <option value="slope40_rolling_mean_60days">slope40_rolling_mean_60days</option>
+        <option value="slope_slopes">slope_slopes</option>
+        <option value="curvature40">curvature40</option>
+        <option value="curvature40_rolling_mean_15days">curvature40_rolling_mean_15days</option>
+        <option value="curvature40_rolling_mean_30days">curvature40_rolling_mean_30days</option>
+        <option value="curvature40_rolling_mean_60days">curvature40_rolling_mean_60days</option>
+        <option value="slope_curvatures">slope_curvatures</option>
+        <option value="backscatter40">backscatter40</option>
+        <option value="swvl1_era5">swvl1_era5</option>
+        <option value="stl1_era5">stl1_era5</option>
+        <option value="t2m_era5">t2m_era5</option>
+        <option value="tp_era5">tp_era5</option>
+        <option value="t2m_era5land">t2m_era5land</option>
+        <option value="swvl1_era5land">swvl1_era5land</option>
+        <option value="stl1_era5land">stl1_era5land</option>
+        <option value="tp_era5land">tp_era5land</option>
+        <option value="swvl1_era5land_idx">swvl1_era5land_idx</option>
+        <option value="backscatter20">backscatter20</option>
+        <option value="backscatter20_lin">backscatter20_lin</option>
+        <option value="difference_of_slope40">difference_of_slope40</option>
+        <option value="diff_of_difference_of_slope40">diff_of_difference_of_slope40</option>
+        <option value="difference_of_curvature40">difference_of_curvature40</option>
+        <option value="diff_of_difference_of_curvature40">diff_of_difference_of_curvature40</option>
+    </select>
+    
+      <label for="chart-type-select">Select Chart Type:</label>
+      <select id="chart-type-select">
+        <option value="line">Line Chart</option>
+        <option value="scatter">Scatter Plot</option>
+        <option value="scatter2">Scatter Plot2</option>
+        <option value="combined">Combined Time Series Plot</option> <!-- New Option -->
+    </select>
+    </div>
+
+    <!-- Map container -->
+    <div class="map-container" id="map-container">
+      <svg id="map-svg" width="800" height="800"></svg>
+    </div>
+
+    <!-- CSV Data container (hidden by default) -->
+    <div id="csv-container" style="display: none;">
+      <!-- Select CSV file + gpi_ascat/version filters -->
+      <div id="csv-filters">
+        <label for="csv-source-select">Select CSV:</label>
+        <select id="csv-source-select">
+          <option value="aggregated_merged.csv">Aggregated</option>
+          <option value="separate_merged.csv">Separate</option>
+        </select>
+
+        <label for="gpi-ascat-select">Filter by gpi_ascat:</label>
+        <select id="gpi-ascat-select"></select>
+
+        <label for="version-select">Filter by version:</label>
+        <select id="version-select"></select>
+
+        <button id="plot-btn">Plot CSV Chart</button>
+      </div>
+
+      <!-- Chart only -->
+      <svg id="csv-chart" width="600" height="400"></svg>
+    </div>
+  </div>
+
+  <div class="histograms"></div>
+  <div class="spinner-container">
+    <div class="spinner"></div>
+  </div>
+
+  <script src="main.js"></script>
+  <script>
+    // A small helper function to load the currently selected CSV and populate the filter dropdowns
+    function loadCsvAndPopulate() {
+      const csvFile = document.getElementById("csv-source-select").value;
+      return d3.csv(csvFile).then(data => {
+        // Populate GPI dropdown
+        const gpis = [...new Set(data.map(d => d.gpi_ascat))].sort();
+        const gpiSelect = document.getElementById("gpi-ascat-select");
+        gpiSelect.innerHTML = "";
+        gpis.forEach(val => {
+          const opt = document.createElement("option");
+          opt.value = val;
+          opt.textContent = val;
+          gpiSelect.appendChild(opt);
+        });
+
+        // Populate version dropdown
+        const versions = [...new Set(data.map(d => d.version))].sort();
+        const versionSelect = document.getElementById("version-select");
+        versionSelect.innerHTML = "";
+        versions.forEach(val => {
+          const opt = document.createElement("option");
+          opt.value = val;
+          opt.textContent = val;
+          versionSelect.appendChild(opt);
+        });
+
+        return data; // Return the loaded data
+      });
+    }
+
+    // A function to filter data and plot the chart
+    function plotCsv(data) {
+      const gpiSelect = document.getElementById("gpi-ascat-select");
+      const versionSelect = document.getElementById("version-select");
+      const selectedGpi = gpiSelect.value;
+      const selectedVersion = versionSelect.value;
+
+      const filtered = data.filter(
+        d => d.gpi_ascat === selectedGpi && d.version === selectedVersion
+      );
+
+      const svg = d3.select("#csv-chart");
+      svg.selectAll("*").remove();
+
+      if (!filtered.length) {
+        return;
+      }
+
+      // Decide which metrics to show
+      const allColumns = Object.keys(filtered[0]);
+      const possibleMetrics = [
+        "accuracy", "precision_macro", "recall_macro", "f1_macro",
+        "precision", "recall", "f1_score"
+      ];
+      const metrics = possibleMetrics.filter(m => allColumns.includes(m));
+
+      const margin = { top: 20, right: 20, bottom: 40, left: 50 };
+      const width = +svg.attr("width") - margin.left - margin.right;
+      const height = +svg.attr("height") - margin.top - margin.bottom;
+
+      const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+      // Sum & average
+      const sums = {};
+      metrics.forEach(m => sums[m] = 0);
+      filtered.forEach(d => {
+        metrics.forEach(m => {
+          sums[m] += +d[m];
+        });
+      });
+      const rowCount = filtered.length;
+      const avg = metrics.map(m => ({
+        metric: m,
+        value: sums[m] / rowCount
+      }));
+
+      // X & Y scales
+      const x = d3.scaleBand()
+        .domain(metrics)
+        .range([0, width])
+        .padding(0.3);
+
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(avg, d => d.value)])
+        .range([height, 0])
+        .nice();
+
+      // Axes
+      g.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x));
+
+      g.append("g")
+        .call(d3.axisLeft(y));
+
+      // Draw bars
+      g.selectAll(".bar")
+        .data(avg)
+        .enter()
+        .append("rect")
+        .attr("class", "bar")
+        .attr("x", d => x(d.metric))
+        .attr("y", d => y(d.value))
+        .attr("width", x.bandwidth())
+        .attr("height", d => height - y(d.value))
+        .attr("fill", "#0072ff");
+    }
+
+    // Show Default Map
+    document.getElementById("default-tab").addEventListener("click", () => {
+      document.getElementById("map-container").style.display = "block";
+      document.getElementById("csv-container").style.display = "none";
+    });
+
+    // Show Cell 1250
+    document.getElementById("cell-1250-tab").addEventListener("click", () => {
+      document.getElementById("map-container").style.display = "block";
+      document.getElementById("csv-container").style.display = "none";
+    });
+    document.getElementById("baseline-tab").addEventListener("click", () => {
+      document.getElementById("map-container").style.display = "block";
+      document.getElementById("csv-container").style.display = "none";
+    });
+
+    // Show CSV Data
+    document.getElementById("csv-tab").addEventListener("click", () => {
+      document.getElementById("map-container").style.display = "none";
+      document.getElementById("csv-container").style.display = "block";
+      // Load CSV immediately when switching to CSV tab and populate filters
+      loadCsvAndPopulate();
+    });
+
+    // If user changes the CSV file, re-populate filters
+    document.getElementById("csv-source-select").addEventListener("change", () => {
+      loadCsvAndPopulate();
+    });
+
+    // Plot button
+    document.getElementById("plot-btn").addEventListener("click", () => {
+      const csvFile = document.getElementById("csv-source-select").value;
+      d3.csv(csvFile).then(data => {
+        plotCsv(data);
+      });
+    });
+  </script>
+</body>
+</html>
