@@ -344,7 +344,7 @@ const drawCombinedTimeSeriesPlot = (data) => {
   // Set chart dimensions
   const chartWidth = 1400;
   const chartHeight = 700;
-  const margin = { top: 50, right: 180, bottom: 100, left: 150 }; // Increased left margin for legend
+  const margin = { top: 50, right: 180, bottom: 100, left: 150 }; 
   const innerWidth = chartWidth - margin.left - margin.right;
   const innerHeight = chartHeight - margin.top - margin.bottom;
 
@@ -360,7 +360,7 @@ const drawCombinedTimeSeriesPlot = (data) => {
         slope40: +d.slope40,
         curvature40: +d.curvature40,
         backscatter40: +d.backscatter40,
-        swvl1_era5land: +d.swvl1_era5land, // <-- add this
+        swvl1_era5land: +d.swvl1_era5land, 
         target: d.target,
         prediction: d.prediction
       };
@@ -611,7 +611,7 @@ const drawScatterPlot = (data) => {
   // Set chart dimensions
   const chartWidth = 1400;
   const chartHeight = 700;
-  const margin = { top: 50, right: 120, bottom: 100, left: 150 }; // Increased left margin for legend
+  const margin = { top: 50, right: 120, bottom: 100, left: 150 }; 
   const innerWidth = chartWidth - margin.left - margin.right;
   const innerHeight = chartHeight - margin.top - margin.bottom;
 
@@ -668,7 +668,7 @@ const drawScatterPlot = (data) => {
   const lineColors = {
     curvature40: "steelblue",
     curvature40_rolling_mean_60days: "orange",
-    difference_of_curvature40: "#d81b60" // darker pink
+    difference_of_curvature40: "#d81b60" 
   };
 
   const paramKeys = ["curvature40", "curvature40_rolling_mean_60days", "difference_of_curvature40"];
@@ -698,7 +698,7 @@ const drawScatterPlot = (data) => {
         .append("text")
         .attr("transform", "rotate(-90)")
         .attr("x", -innerHeight / 2)
-        .attr("y", -50) // shift out
+        .attr("y", -50) 
         .attr("fill", lineColors[param])
         .attr("text-anchor", "middle")
         .style("font-size", "14px")
@@ -760,7 +760,7 @@ const drawScatterPlot = (data) => {
         .attr("x2", xScale(end.parsedTime))
         .attr("y2", yScales[param](end[param]))
         .attr("stroke", segmentColor)
-        .attr("stroke-width", param === "difference_of_curvature40" ? 1.5 : 3); // Thinner line for difference_of_curvature40
+        .attr("stroke-width", param === "difference_of_curvature40" ? 1.5 : 3); 
 
       // Add markers only for difference_of_curvature40
       if (param === "difference_of_curvature40" && start.prediction && start.prediction !== "") {
@@ -798,7 +798,7 @@ const drawScatterPlot = (data) => {
   ];
 
   const legendGroup = chartSvg.append("g")
-    .attr("transform", `translate(20, ${margin.top})`); // Position legend on the left
+    .attr("transform", `translate(20, ${margin.top})`); 
 
   legendItems.forEach((item, i) => {
     const row = legendGroup.append("g").attr("transform", `translate(0, ${i * 20})`);
@@ -849,7 +849,7 @@ const dataCache = {};
 
 // Function to load and draw the map with the specified dataset
 const loadMap = (dataset) => {
-  d3.selectAll("svg > *").remove(); // Clear existing map content
+  d3.selectAll("svg > *").remove(); 
 
   svg.insert("rect", ":first-child")
     .attr("width", width)
@@ -897,8 +897,8 @@ const drawMap = ({ geojson, groupedData }, dataset) => {
 
   // Define color scales
   const percentageColorScale = d3.scaleLinear()
-    .domain([50, 100]) // Percentage range
-    .range(["yellow", "green"]); // Yellow for low, green for high
+    .domain([50, 100]) 
+    .range(["yellow", "green"]); 
 
   const soilCatColors = {
     mixed: "red",
@@ -918,8 +918,8 @@ const drawMap = ({ geojson, groupedData }, dataset) => {
     .attr("cy", d => projection([d[0].lon, d[0].lat])[1])
     .attr("r", 2.7)
     .attr("fill", d => isBaseline
-      ? percentageColorScale(+d[0].percentage_match) // Use percentage_match for baseline
-      : soilCatColors[d[0].soil_cat] || "gray" // Use soil_cat for others
+      ? percentageColorScale(+d[0].percentage_match) 
+      : soilCatColors[d[0].soil_cat] || "gray" 
     )
     .style("cursor", "pointer")
     .on("mouseover", (event, d) => {
@@ -943,7 +943,7 @@ const drawMap = ({ geojson, groupedData }, dataset) => {
           drawScatterPlot(d);
         } else if (chartType === "scatter2") {
           drawScatterPlot2(d);
-      } else if (chartType === "combined") { // Handle Combined Plot
+      } else if (chartType === "combined") { 
           drawCombinedTimeSeriesPlot(d);
       }
   });
